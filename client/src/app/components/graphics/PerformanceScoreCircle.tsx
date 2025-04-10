@@ -1,17 +1,28 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
-export default function PerformanceScoreCircle() {
-  const score = 50;
-  
+interface PerformanceScoreCircleProps {
+  score: number;
+}
+
+export default function PerformanceScoreCircle({ score = 0 }: PerformanceScoreCircleProps) {
+  // Ensure score is a valid number between 0 and 100
+  const validScore = isNaN(score) ? 0 : Math.min(Math.max(score, 0), 100);
   
   const data = [
-    { name: 'Score', value: score },
-    { name: 'Remaining', value: 100 - score }
+    { name: 'Score', value: validScore },
+    { name: 'Remaining', value: 100 - validScore }
   ];
   
+  // Color logic based on score
+  const getScoreColor = (score: number) => {
+    if (score >= 90) return '#22c55e'; // Green for excellent
+    if (score >= 70) return '#3b82f6'; // Blue for good
+    if (score >= 50) return '#f59e0b'; // Orange for average
+    return '#ef4444'; // Red for poor
+  };
 
-  const COLORS = ['#2963F9', '#e5e7eb'];
+  const COLORS = [getScoreColor(validScore), '#e5e7eb'];
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-64">
@@ -37,7 +48,7 @@ export default function PerformanceScoreCircle() {
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-4xl font-bold">{score}%</span>
+          <span className="text-4xl font-bold">{validScore}%</span>
         </div>
       </div>
     </div>

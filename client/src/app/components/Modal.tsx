@@ -14,6 +14,38 @@ const Modal = () => {
 
   if (!isModalOpen) return null;
 
+  // Helper function to safely process API response data
+  const processApiResponse = (data) => {
+    console.log("Raw API response:", data);
+    
+    // If it's null or undefined, return null
+    if (!data) return null;
+    
+    // If it's an array, take the first item
+    if (Array.isArray(data)) {
+      console.log("API response is an array, taking first item");
+      return data.length > 0 ? data[0] : null;
+    }
+    
+    // If it's an object, check if it has the expected properties
+    if (typeof data === 'object') {
+      // Check for expected properties to confirm it's the analytics data
+      if ('avgPerformanceScore' in data || 'avgFirstContentfulPaint' in data) {
+        console.log("Found expected properties in API response");
+        return data;
+      }
+      
+      // Check if data might be nested in a property
+      console.log("Available keys in response:", Object.keys(data));
+      if (data.data) return processApiResponse(data.data);
+      if (data.result) return processApiResponse(data.result);
+      if (data.response) return processApiResponse(data.response);
+    }
+    
+    console.log("Could not determine valid data structure from API response");
+    return null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -22,6 +54,9 @@ const Modal = () => {
       setStatus('error');
       return;
     }
+    
+    // Save URL to localStorage for AutomationDetails component
+    localStorage.setItem('analyzedUrl', url);
     
     setIsSubmitting(true);
     setMessage('Starting website analysis. This may take several minutes for complex sites...');
@@ -36,29 +71,37 @@ const Modal = () => {
         body: JSON.stringify({ url }),
       });
       
-      const data = await response.json();
+      const rawData = await response.json();
+      console.log("Received data from API:", rawData);
       
       if (response.ok) {
-        // Store the analytics data in context
-        if (data && data.length > 0) {
-          console.log("Setting analytics data:", data[0]);
-          setAnalyticsData(data[0]); // Store the first object from the array
+        // Process the API response to get analytics data
+        const processedData = processApiResponse(rawData);
+        
+        if (processedData) {
+          console.log("Processed analytics data:", processedData);
+          setAnalyticsData(processedData);
+          
+          setMessage(`Success! Your website analysis has been completed.`);
+          setStatus('success');
+          
+          // Close modal after success
+          setTimeout(() => {
+            setUrl('');
+            setMessage('');
+            closeModal();
+          }, 3000);
+        } else {
+          console.error("Could not extract valid analytics data from API response:", rawData);
+          setMessage(`Error: Could not process data from server`);
+          setStatus('error');
         }
-        
-        setMessage(`Success! Your website analysis has been completed.`);
-        setStatus('success');
-        
-        // Close modal after success
-        setTimeout(() => {
-          setUrl('');
-          setMessage('');
-          closeModal();
-        }, 3000);
       } else {
-        setMessage(`Error: ${data.detail || 'Unknown error occurred'}`);
+        setMessage(`Error: ${rawData.detail || 'Unknown error occurred'}`);
         setStatus('error');
       }
     } catch (error) {
+      console.error("API request failed:", error);
       setMessage(`Failed to submit: ${error.message}`);
       setStatus('error');
     } finally {

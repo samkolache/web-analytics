@@ -1,19 +1,52 @@
 'use client'
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 
-const AnalyticsContext = createContext();
+// Define a proper interface for your analytics data
+interface AnalyticsData {
+  avgPerformanceScore: number;
+  avgFirstContentfulPaint: number;
+  avgSpeedIndex: number;
+  avgLargestContentfulPaint: number;
+  avgTimeToInteractive: number;
+  avgAccessibility: number;
+  avgBestPractices: number;
+  avgSeo: number;
+  avgTotalBlockingTime: number;
+  avgInteractionToNextPaint: number;
+  avgCumulativeLayoutShift: number;
+  avgServerResponseTime: number;
+  urlCount?: number;
+}
 
-// In AnalyticsContext.tsx
-export function AnalyticsProvider({ children }) {
-  const [analyticsData, setAnalyticsData] = useState(null);
+interface AnalyticsContextType {
+  analyticsData: AnalyticsData | null;
+  setAnalyticsData: (data: AnalyticsData | null) => void;
+}
+
+// Create context with null as default value
+const AnalyticsContext = createContext<AnalyticsContextType>({
+  analyticsData: null,
+  setAnalyticsData: () => {}
+});
+
+export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   
-  const setAnalyticsDataWithLog = (data) => {
+  const setAnalyticsDataWithLog = (data: AnalyticsData | null) => {
     console.log("AnalyticsContext: Setting data:", data);
     setAnalyticsData(data);
   };
 
+  // Debug data changes
+  useEffect(() => {
+    console.log("Analytics data in context updated:", analyticsData);
+  }, [analyticsData]);
+
   return (
-    <AnalyticsContext.Provider value={{ analyticsData, setAnalyticsData: setAnalyticsDataWithLog }}>
+    <AnalyticsContext.Provider value={{ 
+      analyticsData, 
+      setAnalyticsData: setAnalyticsDataWithLog 
+    }}>
       {children}
     </AnalyticsContext.Provider>
   );
