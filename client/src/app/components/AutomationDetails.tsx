@@ -3,25 +3,28 @@ import React, { useEffect, useState } from 'react';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 
 const AutomationDetails = () => {
-  const { analyticsData } = useAnalytics();
+  const { analyticsData, isLoading } = useAnalytics();
   const [testUrl, setTestUrl] = useState('');
   const [testDate, setTestDate] = useState('');
-
+  const [status, setStatus] = useState('');
+  
   // Safe value getter
-  const getSafeValue = (property, defaultValue = 0) => {
+  const getSafeValue = (property: string, defaultValue = 0) => {
     if (!analyticsData) return defaultValue;
-    return analyticsData[property] !== undefined ? analyticsData[property] : defaultValue;
+    return analyticsData[property as keyof typeof analyticsData] !== undefined 
+      ? analyticsData[property as keyof typeof analyticsData] 
+      : defaultValue;
   };
 
   // Format server response time with ms
   const formatResponseTime = () => {
     const value = getSafeValue('avgServerResponseTime');
-    return value ? `${value.toFixed(0)} ms` : "N/A";
+    return value ? `${Number(value).toFixed(0)} ms` : "N/A";
   };
 
   // Get status based on response time
   const getResponseTimeStatus = () => {
-    const responseTime = getSafeValue('avgServerResponseTime');
+    const responseTime = Number(getSafeValue('avgServerResponseTime'));
     
     if (responseTime <= 100) return "Excellent";
     if (responseTime <= 300) return "Good";
@@ -41,7 +44,18 @@ const AutomationDetails = () => {
     }
   };
 
-  // Listen for localStorage changes from Modal component
+  // Set status based on analytics data availability
+  useEffect(() => {
+    if (isLoading) {
+      setStatus('loading');
+    } else if (analyticsData) {
+      setStatus('complete');
+    } else {
+      setStatus('empty');
+    }
+  }, [analyticsData, isLoading]);
+
+  // Listen for localStorage changes
   useEffect(() => {
     // Try to get URL from localStorage
     const storedUrl = localStorage.getItem('analyzedUrl');
@@ -54,7 +68,7 @@ const AutomationDetails = () => {
       const now = new Date();
       
       // Format: April 4, 2025 • 03:55 UTC
-      const options = { 
+      const options: Intl.DateTimeFormatOptions = { 
         year: 'numeric', 
         month: 'long', 
         day: 'numeric',
@@ -67,6 +81,34 @@ const AutomationDetails = () => {
     }
   }, [analyticsData]);
 
+  // If loading, show a loading indicator
+  if (status === 'loading') {
+    return (
+      <div className='bg-white rounded-lg shadow-lg max-w-2xl p-8 m-6 flex items-center justify-center'>
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mb-4"></div>
+          <p>Loading automation details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If no data, show empty state
+  if (status === 'empty') {
+    return (
+      <div className='bg-white rounded-lg shadow-lg max-w-2xl p-8 m-6'>
+        <div className='flex items-center justify-between mb-8 border-b pb-4'>
+          <h2 className='text-2xl font-bold text-gray-800'>Automation Details</h2>
+        </div>
+        <div className='flex flex-col gap-6 items-center justify-center'>
+          <p className="text-gray-500">No analysis data available</p>
+          <p className="text-gray-400 text-sm">Click "Run Analytics" to analyze a website</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Normal view with data
   return (
     <div className='bg-white rounded-lg shadow-lg max-w-2xl p-8 m-6'>
       <div className='flex items-center justify-between mb-8 border-b pb-4'>

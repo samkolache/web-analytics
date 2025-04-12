@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useModal } from '../../contexts/ModalContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 
@@ -9,44 +9,95 @@ const Modal = () => {
   const [url, setUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
-  const [status, setStatus] = useState(''); // 'success', 'error', or empty
+  const [status, setStatus] = useState(''); // 'success', 'error', 'processing' or empty
+  const [analysisId, setAnalysisId] = useState('');
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const { setAnalyticsData } = useAnalytics();
+
+  // Clean up polling when component unmounts or modal closes
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
+
+  // Stop polling when modal closes
+  useEffect(() => {
+    if (!isModalOpen && pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+  }, [isModalOpen, pollingInterval]);
 
   if (!isModalOpen) return null;
 
-  // Helper function to safely process API response data
-  const processApiResponse = (data) => {
-    console.log("Raw API response:", data);
-    
-    // If it's null or undefined, return null
-    if (!data) return null;
-    
-    // If it's an array, take the first item
-    if (Array.isArray(data)) {
-      console.log("API response is an array, taking first item");
-      return data.length > 0 ? data[0] : null;
+  // Poll for analysis status
+  const startPolling = (id: string) => {
+    // Clear any existing polling
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
     }
     
-    // If it's an object, check if it has the expected properties
-    if (typeof data === 'object') {
-      // Check for expected properties to confirm it's the analytics data
-      if ('avgPerformanceScore' in data || 'avgFirstContentfulPaint' in data) {
-        console.log("Found expected properties in API response");
-        return data;
+    // Set up new polling interval
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/analysis-status/${id}`);
+        const data = await response.json();
+        
+        console.log("Polling update:", data);
+        
+        if (data.status === 'complete') {
+          // Analysis is complete
+          clearInterval(interval);
+          setPollingInterval(null);
+          
+          // Process the results
+          if (data.avgPerformanceScore !== undefined) {
+            console.log("Analysis complete, setting data:", data);
+            setAnalyticsData(data);
+            
+            // Store in localStorage for persistence
+            localStorage.setItem('lastAnalysisId', id);
+            localStorage.setItem('lastAnalysisData', JSON.stringify(data));
+            
+            setMessage(`Success! Your website analysis has been completed.`);
+            setStatus('success');
+            
+            // Close modal after success
+            setTimeout(() => {
+              setUrl('');
+              setMessage('');
+              setAnalysisId('');
+              closeModal();
+            }, 3000);
+          } else {
+            setMessage(`Error: Results data is incomplete`);
+            setStatus('error');
+          }
+        } else if (data.status === 'failed') {
+          // Analysis failed
+          clearInterval(interval);
+          setPollingInterval(null);
+          setMessage(`Error: ${data.error || 'Analysis failed'}`);
+          setStatus('error');
+        } else {
+          // Still processing
+          setMessage(`Analysis in progress. This may take several minutes...`);
+          setStatus('processing');
+        }
+      } catch (error) {
+        console.error("Error polling for status:", error);
+        setMessage(`Error checking analysis status: ${error.message}`);
+        setStatus('error');
       }
-      
-      // Check if data might be nested in a property
-      console.log("Available keys in response:", Object.keys(data));
-      if (data.data) return processApiResponse(data.data);
-      if (data.result) return processApiResponse(data.result);
-      if (data.response) return processApiResponse(data.response);
-    }
+    }, 5000); // Check every 5 seconds
     
-    console.log("Could not determine valid data structure from API response");
-    return null;
+    setPollingInterval(interval);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!url) {
@@ -59,8 +110,8 @@ const Modal = () => {
     localStorage.setItem('analyzedUrl', url);
     
     setIsSubmitting(true);
-    setMessage('Starting website analysis. This may take several minutes for complex sites...');
-    setStatus('');
+    setMessage('Starting website analysis. This may take several minutes...');
+    setStatus('processing');
     
     try {
       const response = await fetch('http://localhost:8000/api/analyze-url', {
@@ -71,40 +122,27 @@ const Modal = () => {
         body: JSON.stringify({ url }),
       });
       
-      const rawData = await response.json();
-      console.log("Received data from API:", rawData);
+      const data = await response.json();
+      console.log("Received initial response:", data);
       
-      if (response.ok) {
-        // Process the API response to get analytics data
-        const processedData = processApiResponse(rawData);
+      if (response.ok && data.analysisId) {
+        // Store the analysis ID
+        setAnalysisId(data.analysisId);
         
-        if (processedData) {
-          console.log("Processed analytics data:", processedData);
-          setAnalyticsData(processedData);
-          
-          setMessage(`Success! Your website analysis has been completed.`);
-          setStatus('success');
-          
-          // Close modal after success
-          setTimeout(() => {
-            setUrl('');
-            setMessage('');
-            closeModal();
-          }, 3000);
-        } else {
-          console.error("Could not extract valid analytics data from API response:", rawData);
-          setMessage(`Error: Could not process data from server`);
-          setStatus('error');
-        }
+        // Start polling for results
+        startPolling(data.analysisId);
+        
+        setMessage(`Analysis started. Results will appear when processing is complete...`);
+        setStatus('processing');
       } else {
-        setMessage(`Error: ${rawData.detail || 'Unknown error occurred'}`);
+        setMessage(`Error: ${data.detail || 'Unknown error occurred'}`);
         setStatus('error');
+        setIsSubmitting(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("API request failed:", error);
       setMessage(`Failed to submit: ${error.message}`);
       setStatus('error');
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -140,7 +178,7 @@ const Modal = () => {
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://example.com"
                 className="rounded-md p-2 border border-gray-300 focus:border-blue-500 focus:outline-none"
-                disabled={isSubmitting}
+                disabled={isSubmitting || status === 'processing'}
               />
             </div>
             
@@ -148,9 +186,15 @@ const Modal = () => {
               <div className={`mb-4 p-3 rounded-md ${
                 status === 'error' ? 'bg-red-100 text-red-700' : 
                 status === 'success' ? 'bg-green-100 text-green-700' : 
+                status === 'processing' ? 'bg-blue-100 text-blue-700' :
                 'bg-blue-100 text-blue-700'
               }`}>
                 {message}
+                {status === 'processing' && (
+                  <div className="mt-2 w-full bg-gray-200 rounded-full h-2.5">
+                    <div className="bg-blue-600 h-2.5 rounded-full animate-pulse"></div>
+                  </div>
+                )}
               </div>
             )}
             
@@ -158,9 +202,9 @@ const Modal = () => {
               <button
                 type="submit"
                 className="bg-blue-600 px-12 rounded-md text-white py-2 hover:bg-blue-700 disabled:bg-blue-300"
-                disabled={isSubmitting}
+                disabled={isSubmitting || status === 'processing'}
               >
-                {isSubmitting ? 'Processing...' : 'Run'}
+                {(isSubmitting || status === 'processing') ? 'Processing...' : 'Run'}
               </button>
             </div>
           </form>

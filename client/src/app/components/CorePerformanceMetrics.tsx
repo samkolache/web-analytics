@@ -20,36 +20,32 @@ const CorePerformanceMetrics = () => {
   };
 
   return (
-    <div className='bg-white rounded-md space-y-4 max-w-xl p-10 flex flex-col items-center m-4'>
-      <h2 className='text-2xl font-bold text-gray-800'>Core Performance Metrics</h2>
+    <div className='bg-white rounded-md shadow-md p-3 sm:p-4 lg:p-6 flex flex-col items-center max-w-full w-full'>
+      <h2 className='text-lg sm:text-xl font-bold text-gray-800 mb-2'>Core Performance Metrics</h2>
       <PerformanceScoreCircle 
         score={Math.round(getSafeValue('avgPerformanceScore', 0))} 
       />
-      <div className='space-y-8'>
-        <div className='flex gap-8'>
-            <SimpleMetric 
-              metric="First Contentful Paint" 
-              score={formatSeconds('avgFirstContentfulPaint')}
-              tooltip="How fast the first piece of content appears" 
-            />
-            <SimpleMetric 
-              metric="Largest Contentful Paint" 
-              score={formatSeconds('avgLargestContentfulPaint')}
-              tooltip="Time for the largest content to load" 
-            />
-        </div>
-        <div className='flex gap-8'>
-            <SimpleMetric 
-              metric="Speed Index" 
-              score={formatSeconds('avgSpeedIndex')}
-              tooltip="How quickly the visible content loads" 
-            />
-            <SimpleMetric 
-              metric="Time to Interactive" 
-              score={formatSeconds('avgTimeToInteractive')}
-              tooltip="When the page becomes fully interactive" 
-            />
-        </div>
+      <div className='w-full grid grid-cols-2 gap-2 sm:gap-3'>
+        <SimpleMetric 
+          metric="First Content Paint" 
+          score={formatSeconds('avgFirstContentfulPaint')}
+          tooltip="First content appears" 
+        />
+        <SimpleMetric 
+          metric="Largest Content Paint" 
+          score={formatSeconds('avgLargestContentfulPaint')}
+          tooltip="Largest content loads" 
+        />
+        <SimpleMetric 
+          metric="Speed Index" 
+          score={formatSeconds('avgSpeedIndex')}
+          tooltip="Visible content loads" 
+        />
+        <SimpleMetric 
+          metric="Time to Interactive" 
+          score={formatSeconds('avgTimeToInteractive')}
+          tooltip="Page becomes interactive" 
+        />
       </div>
     </div>
   )
