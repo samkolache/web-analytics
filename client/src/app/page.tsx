@@ -44,8 +44,8 @@ export default function Home() {
   // Show analytics data when available
   return (
     <>
-      <div className="flex min-h-full flex-wrap">
-        <div className="flex flex-wrap items-center">
+      <div className="flex min-h-full items-center">
+        <div className="flex items-center">
           <AutomationDetails />
           <CorePerformanceMetrics />
         </div>
@@ -53,6 +53,7 @@ export default function Home() {
           <QuickInsights />
           <UserExpInsights />
         </div>
+        {/* <DataDebugger /> */}
       </div>
     </>
   );

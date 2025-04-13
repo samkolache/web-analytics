@@ -4,9 +4,13 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useModal } from '../../contexts/ModalContext';
+import { useAnalytics } from '@/contexts/AnalyticsContext';
+
 
 const Navbar = () => {
   const { openModal } = useModal();
+  const { resetAnalyticsData, analyticsData } = useAnalytics();
+
   
   return (
     <nav>
@@ -29,6 +33,15 @@ const Navbar = () => {
           >
             Run Analytics
           </button>
+
+          {analyticsData && (
+            <button 
+            className="px-4 py-2 bg-red-600 text-white rounded-md font-medium hover:bg-red-700"
+            onClick={resetAnalyticsData}
+            >
+            Reset Analytics
+          </button>
+          )}
         </div>
       </div>
     </nav>

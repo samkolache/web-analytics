@@ -25,6 +25,7 @@ interface AnalyticsContextType {
   setAnalyticsData: (data: AnalyticsData | null) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
+  resetAnalyticsData: () => void; // Add this to the interface
 }
 
 // Create context with default values
@@ -32,7 +33,8 @@ const AnalyticsContext = createContext<AnalyticsContextType>({
   analyticsData: null,
   setAnalyticsData: () => {},
   isLoading: false,
-  setIsLoading: () => {}
+  setIsLoading: () => {},
+  resetAnalyticsData: () => {} // Add default implementation
 });
 
 export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
@@ -42,6 +44,15 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
   const setAnalyticsDataWithLog = (data: AnalyticsData | null) => {
     console.log("AnalyticsContext: Setting data:", data);
     setAnalyticsData(data);
+  };
+
+  // Move the function inside the component
+  const resetAnalyticsData = () => {
+    localStorage.removeItem('lastAnalysisData');
+    localStorage.removeItem('lastAnalysisId');
+    localStorage.removeItem('analyzedUrl');
+    setAnalyticsData(null);
+    console.log("Analytics data has been reset");
   };
 
   // Load previously saved analytics data on initial render
@@ -101,7 +112,8 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
       analyticsData, 
       setAnalyticsData: setAnalyticsDataWithLog,
       isLoading,
-      setIsLoading
+      setIsLoading,
+      resetAnalyticsData // Include the function in the context
     }}>
       {children}
     </AnalyticsContext.Provider>
