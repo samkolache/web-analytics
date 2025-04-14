@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import analytics
 import config
 from config import logger, CORS_ORIGINS
-from storage import get_redis_status
+from storage import get_rabbitmq_status
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -12,12 +12,12 @@ async def lifespan(app: FastAPI):
     # Startup logic
     logger.info("Starting Website Performance Analyzer API")
     
-    # Check Redis connection
-    redis_status = get_redis_status()
-    if redis_status:
-        logger.info("Connected to Redis successfully")
+    # Check RabbitMQ connection
+    rabbitmq_status = get_rabbitmq_status()
+    if rabbitmq_status:
+        logger.info("Connected to RabbitMQ successfully")
     else:
-        logger.warning("Failed to connect to Redis - falling back to in-memory storage")
+        logger.warning("Failed to connect to RabbitMQ - system may not function correctly")
     
     yield
     

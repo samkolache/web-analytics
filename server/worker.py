@@ -12,9 +12,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("worker")
 
-# Import from parent directory
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from config import RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASS, RABBITMQ_VHOST, QUEUE_NAME
 from n8n_service import process_url_with_n8n
 from storage import save_analysis_status
