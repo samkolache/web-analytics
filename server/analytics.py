@@ -2,9 +2,10 @@ import time
 import json
 from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 import models
-import storage
-import queue_service
-import config
+from models import UrlRequest, AnalysisResult
+from storage import save_analysis_status, get_analysis_status, save_analysis_results
+from queue_service import enqueue_analysis_task
+from config import logger, API_BASE_URL
 
 router = APIRouter()
 

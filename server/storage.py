@@ -3,6 +3,7 @@ import time
 import redis
 from typing import Dict, Any, Optional
 import config
+from config import logger  # Import logger from config
 
 # In-memory storage for analysis status and results
 # In a production environment, this should be replaced with Redis or a similar solution

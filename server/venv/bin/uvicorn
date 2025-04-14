@@ -1,4 +1,4 @@
-#!/Users/sameerkotecha/Desktop/web-analytics/server/venv/bin/python
+#!/Users/sameerkotecha/Desktop/web-analytics/server/venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys

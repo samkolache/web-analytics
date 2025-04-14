@@ -3,7 +3,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import analytics
 import config
-import storage
+from config import logger, CORS_ORIGINS
+from storage import get_redis_status
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

@@ -2,8 +2,8 @@ import time
 from rq import Queue
 from rq.job import Job
 from config import QUEUE_NAME, TASK_TIMEOUT, logger
-import storage
-import n8n_service
+from storage import redis_client, save_analysis_status
+
 # Create RQ queue with our Redis connection
 task_queue = Queue(QUEUE_NAME, connection=redis_client, default_timeout=TASK_TIMEOUT)
 
@@ -21,7 +21,7 @@ def enqueue_analysis_task(url: str, analysis_id: str, callback_url: str):
     """
     try:
         # Import the worker function here to avoid circular imports
-        from .n8n_service import process_url_with_n8n
+        from n8n_service import process_url_with_n8n
         
         # Create and enqueue the job
         job = task_queue.enqueue(
